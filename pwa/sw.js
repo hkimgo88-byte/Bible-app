@@ -1,5 +1,6 @@
 // 오프라인 사용: 앱 화면과 개역한글은 설치할 때 저장하고, 영어 번역본은 처음 열 때 저장
-const CACHE = "malsseum-v1";
+// 배포 워크플로가 __BUILD__ 를 커밋 ID로 바꿔, 새 버전을 올리면 설치된 앱도 자동으로 갱신됩니다.
+const CACHE = "malsseum-__BUILD__";
 const CORE = ["./", "index.html", "bible.json", "manifest.webmanifest", "icons/icon-192.png", "icons/favicon.png"];
 
 self.addEventListener("install", (e) => {
@@ -16,6 +17,18 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  // 앱 화면(HTML)은 인터넷이 되면 항상 최신본을 받고, 안 되면 저장본을 보여줌
+  if (e.request.mode === "navigate") {
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => {
+          if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put("index.html", copy)); }
+          return res;
+        })
+        .catch(() => caches.match("index.html").then((hit) => hit || caches.match("./")))
+    );
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then((hit) => {
       if (hit) return hit;

@@ -6,6 +6,18 @@
 - 번역본: 개역한글 + 영어 BSB(Berean Standard Bible) / KJV 병행 보기 (모두 퍼블릭 도메인)
 - 앱 ID: `app.malsseum.barochatgi` (`capacitor.config.json`에서 변경 가능, 스토어 등록 전에 정하세요)
 
+## 바로 설치하기
+
+| 기기 | 방법 |
+|---|---|
+| **안드로이드 (앱)** | 휴대폰에서 [Releases → 안드로이드 앱 (최신)](https://github.com/hkimgo88-byte/bible-app/releases/tag/android-latest) 열기 → `malsseum-barochatgi.apk` 받기 → 열기 → "출처를 알 수 없는 앱 설치" 허용 → 설치 |
+| **아이폰** | 사파리로 [웹앱](https://hkimgo88-byte.github.io/bible-app/) 열기 → 공유 버튼 → **홈 화면에 추가** |
+| **PC · 안드로이드 (웹앱)** | 크롬/엣지로 [웹앱](https://hkimgo88-byte.github.io/bible-app/) 열기 → 상단 **설치** 버튼 또는 주소창의 설치 아이콘 |
+
+- APK는 `main`에 `www/`·`android/` 변경을 올릴 때마다 GitHub Actions(`Build Android APK`)가 자동으로 새로 빌드합니다. 같은 서명 키(`android/app/sideload.keystore`)를 쓰므로 새 APK를 기존 앱 위에 그대로 덮어 설치하면 됩니다. 수동 실행: Actions → Build Android APK → Run workflow.
+- 웹앱은 `pwa/` 변경을 올리면 자동 배포되고, 설치된 웹앱도 다음 실행 때 새 버전으로 바뀝니다.
+- `sideload.keystore`는 직접 설치용입니다. Google Play에 올릴 때는 별도 업로드 키를 만들어 저장소 밖에 보관하세요.
+
 ## 폴더 구성
 
 | 경로 | 내용 |
@@ -83,4 +95,4 @@ npx capacitor-assets generate --iconBackgroundColor '#2a4a8a' --splashBackground
    - **안드로이드 (크롬)**: **설치** 버튼 또는 메뉴 ⋮ → **앱 설치 / 홈 화면에 추가**
    - **아이폰 (사파리)**: 공유 버튼 → **홈 화면에 추가**
 
-내용을 바꾼 뒤 다시 올릴 때는 `pwa/sw.js`의 `CACHE` 이름(예: `malsseum-v2`)을 바꿔야 설치된 앱도 새 버전을 받습니다.
+GitHub Pages로 배포하면 `pwa/sw.js`의 캐시 이름이 커밋마다 자동으로 바뀌어, 설치된 앱도 새 버전을 받습니다. 다른 호스팅에 직접 올릴 때는 `sw.js`의 `__BUILD__`를 매번 다른 값(예: `v2`)으로 바꿔 주세요.

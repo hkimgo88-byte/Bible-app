@@ -1,6 +1,7 @@
 name: Publish PWA to gh-pages
 
 # pwa/ 폴더가 바뀌면 그 내용을 gh-pages 브랜치에 올려 GitHub Pages로 배포합니다.
+# 주소: https://<계정>.github.io/<저장소>/
 on:
   push:
     branches: [main]
@@ -10,22 +11,47 @@ on:
 permissions:
   contents: write
 
+# 배포가 겹치면 앞의 것을 취소하지 않고 순서대로 처리 (중간에 끊긴 배포 방지)
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Push pwa/ to gh-pages
+
+      - name: Check PWA files
         run: |
-          cd pwa
-          touch .nojekyll
+          for f in index.html manifest.webmanifest sw.js bible.json icons/icon-192.png icons/icon-512.png; do
+            test -s "pwa/$f" || { echo "::error::pwa/$f 파일이 없습니다"; exit 1; }
+          done
+          python3 -m json.tool pwa/manifest.webmanifest > /dev/null
+
+      - name: Build site
+        run: |
+          rm -rf _site
+          cp -r pwa _site
+          touch _site/.nojekyll
+          # 서비스워커 캐시 이름을 커밋마다 바꿔 설치된 앱이 새 버전을 받도록 함
+          sed -i "s/__BUILD__/${GITHUB_SHA::7}/" _site/sw.js
+          grep -q "malsseum-${GITHUB_SHA::7}" _site/sw.js
+
+      - name: Push to gh-pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd _site
           git init -q -b gh-pages
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -q -m "Deploy ${GITHUB_SHA::7}"
-          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+
+      - name: Summary
+        run: |
+          owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
+          echo "### 배포 완료" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://${owner,,}.github.io/${repo}/" >> "$GITHUB_STEP_SUMMARY"
