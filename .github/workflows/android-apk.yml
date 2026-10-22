@@ -24,20 +24,22 @@ concurrency:
 
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
           cache: gradle
+
+      - uses: android-actions/setup-android@v3
 
       - name: Install dependencies
         run: npm ci
@@ -52,7 +54,12 @@ jobs:
           VERSION_NAME: 1.0.${{ github.run_number }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          set -o pipefail
+          ./gradlew assembleRelease --no-daemon 2>&1 | tee ../gradle.log || {
+            # 실패 원인을 Actions 요약 화면에 바로 보이도록 표시
+            grep -E "What went wrong|error:|Error|FAILURE|Exception" -A3 ../gradle.log | head -40 | while IFS= read -r l; do echo "::error::$l"; done
+            exit 1
+          }
 
       - name: Rename APK
         run: |
@@ -61,7 +68,7 @@ jobs:
           cp "$apk" "dist/malsseum-barochatgi.apk"
           ls -lh dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: malsseum-barochatgi-apk
           path: dist/malsseum-barochatgi.apk
