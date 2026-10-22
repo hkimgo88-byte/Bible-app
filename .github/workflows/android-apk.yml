@@ -39,7 +39,10 @@ jobs:
           java-version: 21
           cache: gradle
 
-      - uses: android-actions/setup-android@v3
+      - name: Check Android SDK
+        run: |
+          echo "ANDROID_HOME=${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          test -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}" || { echo "::error::Android SDK가 러너에 없습니다"; exit 1; }
 
       - name: Install dependencies
         run: npm ci
