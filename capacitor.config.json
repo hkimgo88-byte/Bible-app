@@ -1,0 +1,7 @@
+{
+  "appId": "app.malsseum.barochatgi",
+  "appName": "말씀 바로찾기",
+  "webDir": "www",
+  "android": { "backgroundColor": "#f3f5f8" },
+  "ios": { "backgroundColor": "#f3f5f8", "contentInset": "never" }
+}

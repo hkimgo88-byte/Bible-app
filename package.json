@@ -1,0 +1,20 @@
+{
+  "name": "malsseum-barochatgi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "말씀 바로찾기 - 성경 구절 검색 앱 (개역한글 + BSB/KJV)",
+  "scripts": {
+    "sync": "cap sync",
+    "android": "cap open android",
+    "ios": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/cli": "^7.6.9",
+    "@capacitor/core": "^7.6.9",
+    "@capacitor/ios": "^7.6.9"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5"
+  }
+}
