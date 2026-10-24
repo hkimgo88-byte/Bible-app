@@ -54,9 +54,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* header */
 .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
-.bar .wrap { padding-block: 14px 12px; display: grid; gap: 10px; }
+.bar .wrap { padding-block: 14px 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand h1 { margin: 0; font-family: var(--font-scripture); font-weight: 700; font-size: 20px; letter-spacing: -0.01em; cursor: pointer; }
+.brand h1 { white-space: nowrap; margin: 0; font-family: var(--font-scripture); font-weight: 700; font-size: 20px; letter-spacing: -0.01em; cursor: pointer; }
 .badge { font-size: 11px; letter-spacing: 0.06em; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
 .brand .spacer { flex: 1; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: none; }
@@ -65,8 +65,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .seg button.on { background: var(--accent); color: var(--surface); font-weight: 600; }
 .v .en, .res .en { display: block; font-family: var(--font-ui); font-size: 14.5px; line-height: 1.6; color: var(--muted); margin-top: 2px; }
 .v.hit .en { color: inherit; opacity: 0.8; }
-.ghost { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font-size: 13px; color: var(--muted); }
+.ghost { white-space: nowrap; flex: none; background: none; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font-size: 13px; color: var(--muted); }
 .ghost:hover { color: var(--ink); border-color: var(--muted); }
+.icon-btn { position: relative; display: inline-grid; place-items: center; flex: none; width: 34px; height: 30px; padding: 0; background: none; border: 1px solid var(--line); border-radius: 8px; color: var(--accent); }
+.icon-btn:hover { border-color: var(--accent); }
+.icon-btn svg { width: 18px; height: 18px; }
+.icon-btn .dot { position: absolute; top: -4px; right: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); border: 2px solid var(--surface); }
 form.search { display: flex; gap: 8px; }
 #q { flex: 1; min-width: 0; font: inherit; font-size: 17px; padding: 11px 14px; border-radius: var(--r); border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); }
 #q:focus { outline: none; border-color: var(--accent); background: var(--surface); }
@@ -118,6 +122,20 @@ main.wrap { padding-block: 20px 120px; display: grid; gap: 18px; }
 .num { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 0; font-variant-numeric: tabular-nums; }
 .num:hover { border-color: var(--accent); color: var(--accent); }
 
+/* reading plan */
+.plan { display: grid; gap: 10px; }
+.day { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; display: grid; gap: 8px; }
+.day.today { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.day-h { display: flex; align-items: center; gap: 8px; }
+.day-h .spacer { flex: 1; }
+.day-d { font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tag { font-size: 11px; font-weight: 600; background: var(--accent); color: var(--surface); border-radius: 999px; padding: 1px 8px; }
+.day-t { margin: 0; font-family: var(--font-scripture); font-size: 18px; font-weight: 700; }
+.day.done .day-t { color: var(--muted); }
+.check { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: 13px; color: var(--muted); }
+.check.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.day .num { padding: 7px 0; }
+
 /* keyword results */
 .results { display: grid; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .res { display: grid; gap: 2px; padding: 12px 18px; border-bottom: 1px solid var(--line); text-align: left; background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; }
@@ -144,8 +162,9 @@ mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padd
   .single .verses { font-size: 18px; }
   .res { padding: 12px 14px; }
   .brand h1 { font-size: 18px; }
-  .brand { gap: 8px; }
-  .seg button { padding: 4px 8px; }
+  .brand { gap: 6px; }
+  .seg button { padding: 4px 7px; }
+  .brand .ghost { padding: 5px 9px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
 </style>
@@ -156,6 +175,10 @@ mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padd
     <div class="brand">
       <h1 id="home">말씀 바로찾기</h1>
       <span class="spacer"></span>
+      <button class="icon-btn" id="planBtn" type="button" title="성경 읽기 일정" aria-label="성경 읽기 일정" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5.5C4.5 4 8 4 12 6c4-2 7.5-2 10-.5V19c-2.5-1.5-6-1.5-10 .5-4-2-7.5-2-10-.5z"/><path d="M12 6v13.5"/></svg>
+        <span class="dot" hidden></span>
+      </button>
       <div class="seg" id="seg" role="group" aria-label="함께 볼 영어 번역본">
         <button type="button" data-en="" class="on" title="개역한글만 보기">한글</button>
         <button type="button" data-en="bsb" title="Berean Standard Bible을 함께 보기">+BSB</button>
@@ -495,6 +518,56 @@ function showHome() {
   window.scrollTo(0, 0);
 }
 
+// ---------- 읽기 일정 ----------
+// [날짜, 권 이름, 시작 장, 끝 장]. 마지막 날이 지나면 머리글의 읽기 아이콘이 사라집니다.
+const PLAN = [
+  ["2026-10-24", "호세아", 1, 5],
+  ["2026-10-25", "호세아", 6, 10],
+  ["2026-10-26", "호세아", 11, 14],
+  ["2026-10-27", "역대하", 26, 28],
+  ["2026-10-28", "열왕기하", 15, 17],
+];
+const PLAN_END = PLAN[PLAN.length - 1][0];
+const WEEK = "일월화수목금토";
+const pad2 = (n) => String(n).padStart(2, "0");
+function today() { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+function dayLabel(iso) { const [y, m, d] = iso.split("-").map(Number); return `${m}/${d}(${WEEK[new Date(y, m - 1, d).getDay()]})`; }
+function getDone() { try { return JSON.parse(localStorage.getItem("planDone") || "[]"); } catch { return []; } }
+function setDone(iso, on) {
+  const s = new Set(getDone());
+  on ? s.add(iso) : s.delete(iso);
+  try { localStorage.setItem("planDone", JSON.stringify([...s])); } catch {}
+  refreshPlanBtn();
+}
+// 일정이 끝났으면 아이콘을 숨기고, 오늘 분량을 아직 안 읽었으면 점을 표시
+function refreshPlanBtn() {
+  const t = today(), btn = $("#planBtn");
+  btn.hidden = t > PLAN_END;
+  btn.querySelector(".dot").hidden = !PLAN.some(([d]) => d === t) || getDone().includes(t);
+}
+
+function showPlan() {
+  current = null; clearSel();
+  const t = today(), done = getDone();
+  const read = PLAN.filter(([d]) => done.includes(d)).length;
+  main.innerHTML = `
+    <div class="chap-h"><h2>성경 읽기 일정</h2><span class="count">${read} / ${PLAN.length}일 읽음</span></div>
+    <p class="hint">${dayLabel(PLAN[0][0])} – ${dayLabel(PLAN_END)} · 장 번호를 누르면 본문이 열려요.</p>
+    <div class="plan">${PLAN.map(([d, name, from, to]) => {
+      const book = BOOKS.findIndex(([n]) => n === name), on = done.includes(d);
+      return `<article class="day ${d === t ? "today" : ""} ${on ? "done" : ""}" data-day="${d}">
+        <div class="day-h"><span class="day-d">${dayLabel(d)}</span>${d === t ? `<span class="tag">오늘</span>` : ""}<span class="spacer"></span>
+          <button class="check ${on ? "on" : ""}" type="button" data-done="${d}" aria-pressed="${on}">${on ? "✓ 읽음" : "읽음 표시"}</button></div>
+        <h3 class="day-t">${name} ${from}~${to}장</h3>
+        <div class="nums">${range(from, to).map((c) => `<button class="num" type="button" data-pc="${book}:${c}">${c}</button>`).join("")}</div>
+      </article>`;
+    }).join("")}</div>`;
+  main.querySelectorAll("[data-pc]").forEach((b) => b.onclick = () => { const [bk, c] = b.dataset.pc.split(":").map(Number); showChapter(bk, c); });
+  main.querySelectorAll("[data-done]").forEach((b) => b.onclick = () => { setDone(b.dataset.done, !getDone().includes(b.dataset.done)); showPlan(); });
+  const td = main.querySelector(".day.today");
+  if (td) requestAnimationFrame(() => td.scrollIntoView({ block: "center" })); else window.scrollTo(0, 0);
+}
+
 // ---------- 단어 검색 ----------
 function showKeyword(query) {
   current = null; clearSel();
@@ -593,6 +666,9 @@ $("#seg").onclick = async (e) => {
 };
 $("#listBtn").onclick =() => { q.value = ""; showHome(); };
 $("#home").onclick = () => { q.value = ""; showHome(); };
+$("#planBtn").onclick = () => { if (BIBLE) { q.value = ""; showPlan(); } };
+// 앱을 켜 둔 채 날짜가 바뀌어도 다시 열 때 아이콘 상태를 갱신
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshPlanBtn(); });
 document.addEventListener("keydown", (e) => {
   if (e.key === "/" && document.activeElement !== q) { e.preventDefault(); q.focus(); q.select(); }
   if (e.key === "Escape") clearSel();
@@ -603,6 +679,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 renderChips();
+refreshPlanBtn();
 let savedEn = "";
 try { savedEn = localStorage.getItem("en") || ""; } catch {}
 fetch("bible.json").then((r) => { if (!r.ok) throw r.status; return r.json(); }).then(async (data) => {
