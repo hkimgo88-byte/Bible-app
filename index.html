@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="말씀찾기">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171c26" media="(prefers-color-scheme: dark)">
+<style>
+/* 앱 기본값: 시스템 바 영역 확보 */
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>말씀 바로찾기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* Layout: a sticky search bar over one reading column; scripture set in a serif, controls in a sans. */
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --ink: #1a2130;
+  --muted: #5e6878;
+  --line: #dde2ea;
+  --accent: #2a4a8a;
+  --accent-soft: #e6ecf7;
+  --mark: #fbeeb8;
+  --mark-ink: #1a2130;
+  --danger: #a33a2c;
+  --font-scripture: "Gowun Batang", "Nanum Myeongjo", "AppleMyungjo", "Batang", serif;
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f131a; --surface: #171c26; --ink: #e5e9f0; --muted: #98a2b3; --line: #29303d;
+    --accent: #93b2ee; --accent-soft: #1f2b44; --mark: #4a3f1c; --mark-ink: #f6ecc8; --danger: #ef8f80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f131a; --surface: #171c26; --ink: #e5e9f0; --muted: #98a2b3; --line: #29303d;
+  --accent: #93b2ee; --accent-soft: #1f2b44; --mark: #4a3f1c; --mark-ink: #f6ecc8; --danger: #ef8f80;
+  color-scheme: dark;
+}
+html, body { min-height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.55; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* header */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+.bar .wrap { padding-block: 14px 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand h1 { white-space: nowrap; margin: 0; font-family: var(--font-scripture); font-weight: 700; font-size: 20px; letter-spacing: -0.01em; cursor: pointer; }
+.badge { font-size: 11px; letter-spacing: 0.06em; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+.brand .spacer { flex: 1; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: none; }
+.seg button { background: none; border: 0; padding: 4px 10px; font-size: 12px; color: var(--muted); letter-spacing: 0.02em; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--accent); color: var(--surface); font-weight: 600; }
+.v .en, .res .en { display: block; font-family: var(--font-ui); font-size: 14.5px; line-height: 1.6; color: var(--muted); margin-top: 2px; }
+.v.hit .en { color: inherit; opacity: 0.8; }
+.ghost { white-space: nowrap; flex: none; background: none; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font-size: 13px; color: var(--muted); }
+.ghost:hover { color: var(--ink); border-color: var(--muted); }
+.icon-btn { position: relative; display: inline-grid; place-items: center; flex: none; width: 34px; height: 30px; padding: 0; background: none; border: 1px solid var(--line); border-radius: 8px; color: var(--accent); }
+.icon-btn:hover { border-color: var(--accent); }
+.icon-btn svg { width: 18px; height: 18px; }
+.icon-btn .dot { position: absolute; top: -4px; right: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); border: 2px solid var(--surface); }
+form.search { display: flex; gap: 8px; }
+#q { flex: 1; min-width: 0; font: inherit; font-size: 17px; padding: 11px 14px; border-radius: var(--r); border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); }
+#q:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.go { border: none; background: var(--accent); color: var(--surface); border-radius: var(--r); padding: 0 18px; font-weight: 600; }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; background: var(--accent-soft); color: var(--accent); border: none; border-radius: 999px; padding: 4px 11px; font-size: 13px; white-space: nowrap; }
+.chip:hover { filter: brightness(0.97); }
+.chip.on { background: var(--accent); color: var(--surface); }
+
+main.wrap { padding-block: 20px 120px; display: grid; gap: 18px; }
+.status { color: var(--muted); padding: 24px 0; text-align: center; }
+.err { color: var(--danger); }
+.section-h { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 0; }
+.section-h h2 { margin: 0; font-size: 13px; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.section-h small { color: var(--muted); font-size: 12px; }
+
+/* passage card */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; min-width: 0; }
+.card-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.card-h h3 { margin: 0; font-family: var(--font-scripture); font-size: 19px; font-weight: 700; flex: 1; min-width: 0; text-wrap: balance; }
+.act { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: 13px; color: var(--muted); }
+.act:hover { color: var(--accent); border-color: var(--accent); }
+.verses { font-family: var(--font-scripture); font-size: 18px; line-height: 1.85; display: grid; gap: 4px; }
+.v { display: grid; grid-template-columns: 2.2em 1fr; gap: 4px; border-radius: 6px; padding: 2px 6px 2px 0; }
+.v .n { text-align: right; font-family: var(--font-ui); font-size: 12px; color: var(--accent); padding-top: 6px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.v .t { min-width: 0; }
+.v.empty .t { color: var(--muted); font-size: 14px; }
+.single .verses { font-size: 20px; }
+
+/* chapter view */
+.chap-h { display: flex; align-items: center; gap: 10px; }
+.chap-h h2 { margin: 0; flex: 1; font-family: var(--font-scripture); font-size: 24px; text-wrap: balance; }
+.nav-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: 18px; line-height: 1; }
+.nav-btn:disabled { opacity: 0.35; cursor: default; }
+.chapter .v { cursor: pointer; transition: background 0.15s; }
+.chapter .v:hover { background: var(--accent-soft); }
+.v.hit { background: var(--mark); color: var(--mark-ink); }
+.v.sel { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.hint { color: var(--muted); font-size: 13px; }
+
+/* book grid */
+.books { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
+.book { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 4px 6px; display: grid; gap: 1px; text-align: center; }
+.book b { font-family: var(--font-scripture); font-size: 18px; color: var(--accent); }
+.book span { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.book:hover { border-color: var(--accent); }
+.nums { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; }
+.num { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 0; font-variant-numeric: tabular-nums; }
+.num:hover { border-color: var(--accent); color: var(--accent); }
+
+/* reading plan */
+.plan { display: grid; gap: 10px; }
+.day { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; display: grid; gap: 8px; }
+.day.today { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.day-h { display: flex; align-items: center; gap: 8px; }
+.day-h .spacer { flex: 1; }
+.day-d { font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tag { font-size: 11px; font-weight: 600; background: var(--accent); color: var(--surface); border-radius: 999px; padding: 1px 8px; }
+.day-t { margin: 0; font-family: var(--font-scripture); font-size: 18px; font-weight: 700; }
+.day.done .day-t { color: var(--muted); }
+.check { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: 13px; color: var(--muted); }
+.check.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.day .num { padding: 7px 0; }
+
+/* keyword results */
+.results { display: grid; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.res { display: grid; gap: 2px; padding: 12px 18px; border-bottom: 1px solid var(--line); text-align: left; background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; }
+.res:last-child { border-bottom: 0; }
+.res:hover { background: var(--accent-soft); }
+.res .ref { font-size: 13px; font-weight: 600; color: var(--accent); }
+.res .t { font-family: var(--font-scripture); font-size: 16px; line-height: 1.7; }
+mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padding: 0 1px; }
+.count { font-size: 14px; color: var(--muted); }
+.count strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.more { justify-self: center; }
+
+/* selection bar + toast */
+.selbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--ink); color: var(--bg); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.selbar .wrap { display: flex; align-items: center; gap: 10px; padding-block: 12px; }
+.selbar .lbl { flex: 1; min-width: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.selbar button { border: none; border-radius: 8px; padding: 7px 14px; font-size: 14px; }
+.selbar .primary { background: var(--accent); color: var(--surface); font-weight: 600; }
+.selbar .clear { background: transparent; color: var(--bg); border: 1px solid currentColor; opacity: 0.8; }
+.toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 14px; z-index: 7; }
+@media (max-width: 480px) {
+  .card { padding: 16px 14px; }
+  .verses { font-size: 17px; }
+  .single .verses { font-size: 18px; }
+  .res { padding: 12px 14px; }
+  .brand h1 { font-size: 18px; }
+  .brand { gap: 6px; }
+  .seg button { padding: 4px 7px; }
+  .brand .ghost { padding: 5px 9px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="wrap">
+    <div class="brand">
+      <h1 id="home">말씀 바로찾기</h1>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="planBtn" type="button" title="성경 읽기 일정" aria-label="성경 읽기 일정" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5.5C4.5 4 8 4 12 6c4-2 7.5-2 10-.5V19c-2.5-1.5-6-1.5-10 .5-4-2-7.5-2-10-.5z"/><path d="M12 6v13.5"/></svg>
+        <span class="dot" hidden></span>
+      </button>
+      <div class="seg" id="seg" role="group" aria-label="함께 볼 영어 번역본">
+        <button type="button" data-en="" class="on" title="개역한글만 보기">한글</button>
+        <button type="button" data-en="bsb" title="Berean Standard Bible을 함께 보기">+BSB</button>
+        <button type="button" data-en="kjv" title="King James Version을 함께 보기">+KJV</button>
+      </div>
+      <button class="ghost" id="installBtn" type="button" hidden>설치</button>
+      <button class="ghost" id="listBtn" type="button">목록</button>
+    </div>
+    <form class="search" id="f" autocomplete="off">
+      <input id="q" type="search" enterkeyhint="search" placeholder="요 3:16 · 시 23 · 롬 8:28-39 · 단어 검색" aria-label="구절 또는 단어 검색">
+      <button class="go" type="submit">찾기</button>
+    </form>
+    <div class="chips" id="chips"></div>
+  </div>
+</header>
+
+<main class="wrap" id="main"><p class="status">성경 본문을 불러오는 중…</p></main>
+
+<div class="selbar" id="selbar" hidden>
+  <div class="wrap">
+    <span class="lbl" id="selLbl"></span>
+    <button class="clear" id="selClear" type="button">해제</button>
+    <button class="primary" id="selCopy" type="button">복사</button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+// [이름, 약어, 추가 별칭]
+const BOOKS = [
+  ["창세기","창","창세 gen genesis"],["출애굽기","출","출애굽 ex exo exod exodus"],["레위기","레","레위 lev leviticus"],
+  ["민수기","민","민수 num numbers"],["신명기","신","신명 deut dt deuteronomy"],["여호수아","수","josh joshua"],
+  ["사사기","삿","사사 judg judges"],["룻기","룻","ruth"],["사무엘상","삼상","1sam 1samuel"],["사무엘하","삼하","2sam 2samuel"],
+  ["열왕기상","왕상","1kgs 1ki 1kings"],["열왕기하","왕하","2kgs 2ki 2kings"],["역대상","대상","역대기상 1chr 1chron 1chronicles"],
+  ["역대하","대하","역대기하 2chr 2chron 2chronicles"],["에스라","스","ezra"],["느헤미야","느","neh nehemiah"],
+  ["에스더","에","esth esther"],["욥기","욥","job"],["시편","시","ps psa psalm psalms"],["잠언","잠","prov proverbs"],
+  ["전도서","전","eccl ecc ecclesiastes"],["아가","아","아가서 song songofsongs songofsolomon"],["이사야","사","isa isaiah"],
+  ["예레미야","렘","jer jeremiah"],["예레미야애가","애","애가 lam lamentations"],["에스겔","겔","ezek eze ezekiel"],
+  ["다니엘","단","dan daniel"],["호세아","호","hos hosea"],["요엘","욜","joel"],["아모스","암","amos"],
+  ["오바댜","옵","obad oba obadiah"],["요나","욘","jonah"],["미가","미","mic micah"],["나훔","나","nah nahum"],
+  ["하박국","합","hab habakkuk"],["스바냐","습","zeph zep zephaniah"],["학개","학","hag haggai"],["스가랴","슥","zech zec zechariah"],
+  ["말라기","말","mal malachi"],["마태복음","마","마태 matt mt matthew"],["마가복음","막","마가 mark mk"],["누가복음","눅","누가 luke lk"],
+  ["요한복음","요","jn jhn john"],["사도행전","행","행전 acts"],["로마서","롬","로마 rom romans"],["고린도전서","고전","1cor 1corinthians"],
+  ["고린도후서","고후","2cor 2corinthians"],["갈라디아서","갈","갈라디아 gal galatians"],["에베소서","엡","에베소 eph ephesians"],
+  ["빌립보서","빌","빌립보 phil php philippians"],["골로새서","골","골로새 col colossians"],["데살로니가전서","살전","1thess 1th 1thessalonians"],
+  ["데살로니가후서","살후","2thess 2th 2thessalonians"],["디모데전서","딤전","1tim 1timothy"],["디모데후서","딤후","2tim 2timothy"],
+  ["디도서","딛","디도 titus tit"],["빌레몬서","몬","빌레몬 phlm philemon"],["히브리서","히","히브리 heb hebrews"],
+  ["야고보서","약","야고보 jas james"],["베드로전서","벧전","1pet 1peter"],["베드로후서","벧후","2pet 2peter"],
+  ["요한일서","요일","1jn 1john"],["요한이서","요이","2jn 2john"],["요한삼서","요삼","3jn 3john"],["유다서","유","jude"],
+  ["요한계시록","계","계시록 rev revelation"]
+];
+const OT = 39;
+const EXAMPLES = ["요 3:16", "시 23", "롬 8:28-39", "고전 13:4-7", "빌 4:13", "사랑 오래 참고", "창 1:1-5"];
+const TRANSLATION = "개역한글";
+
+let BIBLE = null, FLAT = null;
+// 영어 병행 번역본 (퍼블릭 도메인)
+const EN_NAMES = { bsb: "BSB", kjv: "KJV" };
+const EN_CACHE = {};
+let EN = null, enCode = "";
+const en = (b, c, v) => (EN ? (EN[b]?.[c - 1]?.[v - 1] || "") : "");
+const isLatin = (s) => /[a-z]/i.test(s);
+const $ = (s) => document.querySelector(s);
+const main = $("#main"), q = $("#q");
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const norm = (s) => s.toLowerCase().replace(/\s+/g, "");
+
+// 별칭 → 권 번호, 긴 것부터 비교
+const ALIASES = [];
+BOOKS.forEach(([name, abbr, extra], i) => {
+  new Set([name, abbr, ...extra.split(" ")]).forEach((a) => ALIASES.push([norm(a), i]));
+});
+ALIASES.sort((a, b) => b[0].length - a[0].length);
+
+function matchBook(s) {
+  const n = norm(s);
+  for (const [key, idx] of ALIASES) {
+    if (!n.startsWith(key)) continue;
+    let used = 0, i = 0;
+    while (used < key.length && i < s.length) { if (!/\s/.test(s[i])) used++; i++; }
+    return { book: idx, rest: s.slice(i) };
+  }
+  return null;
+}
+
+// 숫자부: "3:16", "3장 16절", "3 16-18", "1:30-2:3", "23" 등
+function parseNums(r, book) {
+  r = r.trim().replace(/편/g, "장").replace(/절/g, "").replace(/[~–—〜]/g, "-")
+    .replace(/장\s*(?=\d)/g, ":").replace(/장/g, "")
+    .replace(/\s*([:.\-])\s*/g, "$1").replace(/\./g, ":").trim().replace(/\s+/g, ":");
+  if (!r) return { book, whole: "book" };
+  const m = r.match(/^(\d+)(?::(\d+))?(?:-(\d+)(?::(\d+))?)?$/);
+  if (!m) return null;
+  let [, a, b, c, d] = m.map((x) => (x === undefined ? undefined : +x));
+  const chs = BIBLE[book].length;
+  if (chs === 1 && b === undefined && d === undefined) { // 유 5, 몬 4-6
+    return { book, start: [1, a], end: [1, c ?? a] };
+  }
+  if (b === undefined && c === undefined) return { book, whole: "chapter", chapter: a };
+  if (b === undefined && d === undefined) return { book, start: [a, 1], end: [c, Infinity] };
+  const start = [a, b ?? 1];
+  let end;
+  if (c === undefined) end = [a, b];
+  else if (d !== undefined) end = [c, d];
+  else end = [a, c];
+  return { book, start, end };
+}
+
+function validate(ref) {
+  const name = BOOKS[ref.book][0], chs = BIBLE[ref.book];
+  const chk = (c) => { if (c < 1 || c > chs.length) throw `${name}에는 ${chs.length}장까지만 있어요.`; };
+  if (ref.whole === "chapter") { chk(ref.chapter); return ref; }
+  if (ref.whole) return ref;
+  chk(ref.start[0]); chk(ref.end[0]);
+  const vmax = (c) => chs[c - 1].length;
+  if (ref.start[1] < 1 || ref.start[1] > vmax(ref.start[0])) throw `${name} ${ref.start[0]}장에는 ${vmax(ref.start[0])}절까지만 있어요.`;
+  if (ref.end[1] === Infinity) ref.end[1] = vmax(ref.end[0]);
+  if (ref.end[1] > vmax(ref.end[0])) ref.end[1] = vmax(ref.end[0]);
+  if (ref.end[0] < ref.start[0] || (ref.end[0] === ref.start[0] && ref.end[1] < ref.start[1])) throw "구절 범위의 끝이 시작보다 앞에 있어요.";
+  return ref;
+}
+
+// "요 3:16, 18; 롬 5:8" 처럼 여러 구절. 성경 구절이 아니면 null
+function parseQuery(input) {
+  const parts = input.split(/[,;，]/).map((p) => p.trim()).filter(Boolean);
+  if (!parts.length) return null;
+  const refs = [];
+  let last = null;
+  for (let i = 0; i < parts.length; i++) {
+    let p = parts[i], ref = null;
+    const mb = matchBook(p);
+    if (mb) ref = parseNums(mb.rest, mb.book);
+    if (!ref && last && /^[\d\s:.\-~장절편]+$/.test(p)) {
+      if (last.start && !/[:.장]/.test(p) && BIBLE[last.book].length > 1) p = `${last.start[0]}:${p}`;
+      ref = parseNums(p, last.book);
+    }
+    if (!ref) { if (i === 0) return null; throw `“${parts[i]}” 부분을 구절로 읽지 못했어요.`; }
+    refs.push(validate(ref));
+    last = ref;
+  }
+  return refs;
+}
+
+function collect(ref) {
+  const out = [], ch = BIBLE[ref.book];
+  for (let c = ref.start[0]; c <= ref.end[0]; c++) {
+    const from = c === ref.start[0] ? ref.start[1] : 1;
+    const to = c === ref.end[0] ? ref.end[1] : ch[c - 1].length;
+    for (let v = from; v <= to; v++) out.push({ c, v, t: ch[c - 1][v - 1] });
+  }
+  return out;
+}
+
+function label(ref) {
+  const n = BOOKS[ref.book][0], [c1, v1] = ref.start, [c2, v2] = ref.end;
+  if (BIBLE[ref.book].length === 1) return v1 === v2 ? `${n} ${v1}절` : `${n} ${v1}-${v2}절`;
+  if (c1 === c2) return v1 === v2 ? `${n} ${c1}:${v1}` : `${n} ${c1}:${v1}-${v2}`;
+  return `${n} ${c1}:${v1}-${c2}:${v2}`;
+}
+
+const verseHTML = (num, t, cls = "", attrs = "", e = "") =>
+  `<div class="v ${t ? "" : "empty"} ${cls}" ${attrs}><span class="n">${num}</span><span class="t">${t ? esc(t) : "(이 절은 본문이 없습니다)"}${e ? `<span class="en" lang="en">${esc(e)}</span>` : ""}</span></div>`;
+
+// 복사용 본문: 한글, 그리고 영어를 켰으면 영어 블록을 뒤에 붙임
+function copyBody(title, book, items) {
+  const block = (get) => items.length === 1 ? get(items[0]) : items.map((x) => `${x.v} ${get(x)}`).join("\n");
+  let s = `${title} (${TRANSLATION})\n${block((x) => x.t)}`;
+  if (EN) s += `\n\n[${EN_NAMES[enCode]}]\n${block((x) => en(book, x.c, x.v))}`;
+  return s;
+}
+
+async function setVersion(code) {
+  if (code && !EN_CACHE[code]) {
+    toast(`${EN_NAMES[code]} 불러오는 중…`);
+    try {
+      const r = await fetch(`${code}.json`);
+      if (!r.ok) throw r.status;
+      EN_CACHE[code] = await r.json();
+    } catch { toast(`${EN_NAMES[code]}를 불러오지 못했어요. 다시 눌러 주세요.`); return; }
+  }
+  enCode = code; EN = code ? EN_CACHE[code] : null;
+  document.querySelectorAll("#seg button").forEach((b) => b.classList.toggle("on", b.dataset.en === code));
+  try { localStorage.setItem("en", code); } catch {}
+}
+
+function copyText(text) {
+  const done = () => toast("복사했어요");
+  const fallback = () => {
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); done(); } catch { toast("복사하지 못했어요. 길게 눌러 직접 복사해 주세요."); }
+    ta.remove();
+  };
+  try { navigator.clipboard.writeText(text).then(done, fallback); } catch { fallback(); }
+}
+let toastT;
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 1600);
+}
+
+// ---------- 최근 검색 ----------
+function getRecent() { try { return JSON.parse(localStorage.getItem("recent") || "[]"); } catch { return []; } }
+function addRecent(s) {
+  const r = [s, ...getRecent().filter((x) => x !== s)].slice(0, 8);
+  try { localStorage.setItem("recent", JSON.stringify(r)); } catch {}
+  renderChips();
+}
+function renderChips() {
+  const recent = getRecent();
+  const list = recent.length ? recent : EXAMPLES;
+  $("#chips").innerHTML = list.map((s) => `<button class="chip" type="button" data-q="${esc(s)}">${esc(s)}</button>`).join("");
+}
+
+// ---------- 화면 ----------
+let selection = new Set(), current = null;
+
+function clearSel() { selection.clear(); document.querySelectorAll(".v.sel").forEach((e) => e.classList.remove("sel")); updateSelBar(); }
+
+function showPassages(refs) {
+  current = null; clearSel();
+  main.innerHTML = refs.map((ref, i) => {
+    const vs = collect(ref), single = vs.length === 1;
+    const multiCh = ref.start[0] !== ref.end[0];
+    return `<article class="card ${single ? "single" : ""}">
+      <div class="card-h"><h3>${esc(label(ref))}</h3>
+        <button class="act" data-copy="${i}" type="button">복사</button>
+        <button class="act" data-open="${ref.book}:${ref.start[0]}:${ref.start[1]}:${ref.end[0]}:${ref.end[1]}" type="button">${multiCh ? "처음 장" : "장 전체"} 보기</button>
+      </div>
+      <div class="verses">${vs.map((x) => verseHTML(multiCh && x.v === 1 ? `${x.c}:1` : x.v, x.t, "", "", en(ref.book, x.c, x.v))).join("")}</div>
+    </article>`;
+  }).join("");
+  main.querySelectorAll("[data-copy]").forEach((b) => b.onclick = () => {
+    const ref = refs[+b.dataset.copy];
+    copyText(copyBody(label(ref), ref.book, collect(ref)));
+  });
+  bindOpen();
+}
+
+function bindOpen() {
+  main.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => {
+    const [bk, c1, v1, c2, v2] = b.dataset.open.split(":").map(Number);
+    const hits = c1 === c2 ? range(v1, v2) : [v1];
+    showChapter(bk, c1, hits);
+  });
+}
+const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+
+function showChapter(book, chapter, hits = []) {
+  current = { book, chapter }; clearSel();
+  const chs = BIBLE[book], vs = chs[chapter - 1], name = BOOKS[book][0];
+  const unit = chs.length === 1 ? "" : `${chapter}장`;
+  main.innerHTML = `
+    <div class="chap-h">
+      <button class="nav-btn" id="prev" type="button" aria-label="이전 장" ${book === 0 && chapter === 1 ? "disabled" : ""}>‹</button>
+      <h2>${name} ${unit}</h2>
+      <button class="nav-btn" id="next" type="button" aria-label="다음 장" ${book === 65 && chapter === chs.length ? "disabled" : ""}>›</button>
+    </div>
+    <p class="hint">절을 누르면 선택돼요. 여러 절을 골라 한 번에 복사할 수 있어요.</p>
+    <article class="card chapter"><div class="verses">
+      ${vs.map((t, i) => verseHTML(i + 1, t, hits.includes(i + 1) ? "hit" : "", `data-v="${i + 1}" tabindex="0"`, en(book, chapter, i + 1))).join("")}
+    </div></article>
+    <div class="nums-wrap"><div class="section-h"><h2>${name} 다른 장</h2></div></div>
+    <div class="nums">${chs.map((_, i) => `<button class="num" type="button" data-ch="${i + 1}">${i + 1}</button>`).join("")}</div>`;
+  $("#prev").onclick = () => step(-1);
+  $("#next").onclick = () => step(1);
+  main.querySelectorAll("[data-ch]").forEach((b) => b.onclick = () => { showChapter(book, +b.dataset.ch); window.scrollTo(0, 0); });
+  main.querySelectorAll(".chapter .v").forEach((el) => {
+    const toggle = () => {
+      const v = +el.dataset.v;
+      selection.has(v) ? selection.delete(v) : selection.add(v);
+      el.classList.toggle("sel", selection.has(v)); updateSelBar();
+    };
+    el.onclick = toggle;
+    el.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } };
+  });
+  q.value = `${BOOKS[book][1]} ${chs.length === 1 ? "" : chapter}`.trim() + (hits.length ? (chs.length === 1 ? ` ${hits[0]}` : `:${hits[0]}`) + (hits.length > 1 ? `-${hits[hits.length - 1]}` : "") : "");
+  const first = hits.length && main.querySelector(`.v[data-v="${hits[0]}"]`);
+  if (first) requestAnimationFrame(() => first.scrollIntoView({ block: "center" })); else window.scrollTo(0, 0);
+}
+
+function step(d) {
+  let { book, chapter } = current;
+  chapter += d;
+  if (chapter < 1) { book--; chapter = BIBLE[book].length; }
+  else if (chapter > BIBLE[book].length) { book++; chapter = 1; }
+  showChapter(book, chapter);
+}
+
+function compress(nums) {
+  const out = []; let s = null, p = null;
+  for (const n of nums) {
+    if (s === null) { s = p = n; continue; }
+    if (n === p + 1) { p = n; continue; }
+    out.push(s === p ? `${s}` : `${s}-${p}`); s = p = n;
+  }
+  if (s !== null) out.push(s === p ? `${s}` : `${s}-${p}`);
+  return out.join(", ");
+}
+function selLabel() {
+  const { book, chapter } = current, nums = [...selection].sort((a, b) => a - b);
+  return BIBLE[book].length === 1 ? `${BOOKS[book][0]} ${compress(nums)}절` : `${BOOKS[book][0]} ${chapter}:${compress(nums)}`;
+}
+function updateSelBar() {
+  const bar = $("#selbar");
+  if (!selection.size || !current) { bar.hidden = true; return; }
+  bar.hidden = false;
+  $("#selLbl").textContent = `${selLabel()} · ${selection.size}절`;
+}
+$("#selClear").onclick = clearSel;
+$("#selCopy").onclick = () => {
+  const { book, chapter } = current, nums = [...selection].sort((a, b) => a - b);
+  const vs = BIBLE[book][chapter - 1];
+  copyText(copyBody(selLabel(), book, nums.map((n) => ({ c: chapter, v: n, t: vs[n - 1] }))));
+};
+
+function showBook(book, offerWord) {
+  current = null; clearSel();
+  const chs = BIBLE[book], [name] = BOOKS[book];
+  main.innerHTML = `
+    <div class="chap-h"><h2>${name}</h2><span class="count">${chs.length}장 · ${chs.reduce((s, c) => s + c.length, 0).toLocaleString()}절</span></div>
+    ${offerWord ? `<button class="act" type="button" id="asWord" style="justify-self:start">“${esc(offerWord)}” 단어로 본문 검색</button>` : ""}
+    <div class="nums">${chs.map((_, i) => `<button class="num" type="button" data-ch="${i + 1}">${i + 1}</button>`).join("")}</div>`;
+  main.querySelectorAll("[data-ch]").forEach((b) => b.onclick = () => showChapter(book, +b.dataset.ch));
+  if (offerWord) $("#asWord").onclick = () => showKeyword(offerWord);
+}
+
+function showHome() {
+  current = null; clearSel();
+  const grid = (from, to) => BOOKS.slice(from, to).map(([n, a], i) =>
+    `<button class="book" type="button" data-b="${from + i}" title="${n}"><b>${a}</b><span>${n}</span></button>`).join("");
+  main.innerHTML = `
+    <div class="section-h"><h2>구약</h2><small>39권</small></div>
+    <div class="books">${grid(0, OT)}</div>
+    <div class="section-h"><h2>신약</h2><small>27권</small></div>
+    <div class="books">${grid(OT, 66)}</div>`;
+  main.querySelectorAll("[data-b]").forEach((b) => b.onclick = () => showBook(+b.dataset.b));
+  window.scrollTo(0, 0);
+}
+
+// ---------- 읽기 일정 ----------
+// [날짜, 권 이름, 시작 장, 끝 장]. 마지막 날이 지나면 머리글의 읽기 아이콘이 사라집니다.
+const PLAN = [
+  ["2026-10-24", "호세아", 1, 5],
+  ["2026-10-25", "호세아", 6, 10],
+  ["2026-10-26", "호세아", 11, 14],
+  ["2026-10-27", "역대하", 26, 28],
+  ["2026-10-28", "열왕기하", 15, 17],
+];
+const PLAN_END = PLAN[PLAN.length - 1][0];
+const WEEK = "일월화수목금토";
+const pad2 = (n) => String(n).padStart(2, "0");
+function today() { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+function dayLabel(iso) { const [y, m, d] = iso.split("-").map(Number); return `${m}/${d}(${WEEK[new Date(y, m - 1, d).getDay()]})`; }
+function getDone() { try { return JSON.parse(localStorage.getItem("planDone") || "[]"); } catch { return []; } }
+function setDone(iso, on) {
+  const s = new Set(getDone());
+  on ? s.add(iso) : s.delete(iso);
+  try { localStorage.setItem("planDone", JSON.stringify([...s])); } catch {}
+  refreshPlanBtn();
+}
+// 일정이 끝났으면 아이콘을 숨기고, 오늘 분량을 아직 안 읽었으면 점을 표시
+function refreshPlanBtn() {
+  const t = today(), btn = $("#planBtn");
+  btn.hidden = t > PLAN_END;
+  btn.querySelector(".dot").hidden = !PLAN.some(([d]) => d === t) || getDone().includes(t);
+}
+
+function showPlan() {
+  current = null; clearSel();
+  const t = today(), done = getDone();
+  const read = PLAN.filter(([d]) => done.includes(d)).length;
+  main.innerHTML = `
+    <div class="chap-h"><h2>성경 읽기 일정</h2><span class="count">${read} / ${PLAN.length}일 읽음</span></div>
+    <p class="hint">${dayLabel(PLAN[0][0])} – ${dayLabel(PLAN_END)} · 장 번호를 누르면 본문이 열려요.</p>
+    <div class="plan">${PLAN.map(([d, name, from, to]) => {
+      const book = BOOKS.findIndex(([n]) => n === name), on = done.includes(d);
+      return `<article class="day ${d === t ? "today" : ""} ${on ? "done" : ""}" data-day="${d}">
+        <div class="day-h"><span class="day-d">${dayLabel(d)}</span>${d === t ? `<span class="tag">오늘</span>` : ""}<span class="spacer"></span>
+          <button class="check ${on ? "on" : ""}" type="button" data-done="${d}" aria-pressed="${on}">${on ? "✓ 읽음" : "읽음 표시"}</button></div>
+        <h3 class="day-t">${name} ${from}~${to}장</h3>
+        <div class="nums">${range(from, to).map((c) => `<button class="num" type="button" data-pc="${book}:${c}">${c}</button>`).join("")}</div>
+      </article>`;
+    }).join("")}</div>`;
+  main.querySelectorAll("[data-pc]").forEach((b) => b.onclick = () => { const [bk, c] = b.dataset.pc.split(":").map(Number); showChapter(bk, c); });
+  main.querySelectorAll("[data-done]").forEach((b) => b.onclick = () => { setDone(b.dataset.done, !getDone().includes(b.dataset.done)); showPlan(); });
+  const td = main.querySelector(".day.today");
+  if (td) requestAnimationFrame(() => td.scrollIntoView({ block: "center" })); else window.scrollTo(0, 0);
+}
+
+// ---------- 단어 검색 ----------
+function showKeyword(query) {
+  current = null; clearSel();
+  // 영어 단어는 켜 둔 영어 번역본에서 (대소문자 무시)
+  const english = isLatin(query) && !!EN;
+  const terms = query.split(/\s+/).filter(Boolean).map((t) => (english ? t.toLowerCase() : t));
+  const all = english
+    ? FLAT.filter((x) => { const e = en(x[0], x[1], x[2]).toLowerCase(); return terms.every((t) => e.includes(t)); })
+    : FLAT.filter((x) => terms.every((t) => x[3].includes(t)));
+  const re = new RegExp(terms.map((t) => esc(t).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), english ? "gi" : "g");
+  const hl = (s, on) => (on ? esc(s).replace(re, "<mark>$&</mark>") : esc(s));
+  let filter = "all", shown = 0;
+  const perBook = {};
+  all.forEach((x) => (perBook[x[0]] = (perBook[x[0]] || 0) + 1));
+  const ot = all.filter((x) => x[0] < OT).length;
+  const topBooks = Object.entries(perBook).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+  if (!all.length) {
+    main.innerHTML = `<p class="status">“${esc(query)}” 단어가 들어간 구절이 없어요.<br>구절을 찾으려면 <b>요 3:16</b>, <b>시편 23편</b>처럼 입력해 보세요.</p>`;
+    return;
+  }
+  main.innerHTML = `
+    <p class="count">“${esc(query)}” ${english ? EN_NAMES[enCode] + " " : ""}검색 결과 <strong>${all.length.toLocaleString()}</strong>절</p>
+    <div class="chips" id="kf">
+      <button class="chip on" type="button" data-f="all">전체 ${all.length}</button>
+      ${ot ? `<button class="chip" type="button" data-f="ot">구약 ${ot}</button>` : ""}
+      ${all.length - ot ? `<button class="chip" type="button" data-f="nt">신약 ${all.length - ot}</button>` : ""}
+      ${topBooks.length > 1 ? topBooks.map(([b, n]) => `<button class="chip" type="button" data-f="${b}">${BOOKS[b][1]} ${n}</button>`).join("") : ""}
+    </div>
+    <div class="results" id="rl"></div>
+    <button class="ghost more" id="more" type="button" hidden>더 보기</button>`;
+  const list = () => all.filter((x) => filter === "all" || (filter === "ot" ? x[0] < OT : filter === "nt" ? x[0] >= OT : x[0] === +filter));
+  const render = (reset) => {
+    const items = list();
+    if (reset) { shown = 0; $("#rl").innerHTML = ""; }
+    const next = items.slice(shown, shown + 60);
+    $("#rl").insertAdjacentHTML("beforeend", next.map(([b, c, v, t]) =>
+      `<button class="res" type="button" data-open="${b}:${c}:${v}:${c}:${v}"><span class="ref">${BOOKS[b][0]} ${BIBLE[b].length === 1 ? v + "절" : c + ":" + v}</span><span class="t">${hl(t, !english)}${EN ? `<span class="en" lang="en">${hl(en(b, c, v), english)}</span>` : ""}</span></button>`).join(""));
+    shown += next.length;
+    const more = $("#more");
+    more.hidden = shown >= items.length;
+    more.textContent = `더 보기 (${(items.length - shown).toLocaleString()}절 남음)`;
+    bindOpen();
+  };
+  $("#kf").onclick = (e) => {
+    const b = e.target.closest("[data-f]"); if (!b) return;
+    filter = b.dataset.f;
+    $("#kf").querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c === b));
+    render(true);
+  };
+  $("#more").onclick = () => render(false);
+  render(true);
+}
+
+// ---------- 검색 진입점 ----------
+function run(input, remember) {
+  input = input.trim();
+  if (!BIBLE) return;
+  if (!input) { showHome(); return; }
+  let refs;
+  try { refs = parseQuery(input); }
+  catch (msg) { main.innerHTML = `<p class="status err">${esc(String(msg))}</p>`; return; }
+  if (remember) addRecent(input);
+  if (!refs) {
+    // 영어 단어인데 영어 번역본이 꺼져 있으면 BSB를 켜고 검색
+    if (isLatin(input) && !EN) { setVersion("bsb").then(() => EN && showKeyword(input)); return; }
+    showKeyword(input); return;
+  }
+  if (refs.length === 1 && refs[0].whole === "book") {
+    const exact = norm(input) === norm(BOOKS[refs[0].book][0]);
+    showBook(refs[0].book, exact ? null : input);
+    return;
+  }
+  if (refs.length === 1 && refs[0].whole === "chapter") { showChapter(refs[0].book, refs[0].chapter); return; }
+  showPassages(refs.filter((r) => !r.whole));
+}
+
+let liveT;
+q.addEventListener("input", () => {
+  clearTimeout(liveT);
+  liveT = setTimeout(() => {
+    const v = q.value.trim();
+    // 구절은 바로, 단어는 두 글자부터
+    if (!v) { showHome(); return; }
+    try { if (parseQuery(v)) return run(v, false); } catch { return; }
+    if (v.length >= 2) run(v, false);
+  }, 220);
+});
+$("#f").onsubmit = (e) => { e.preventDefault(); run(q.value, true); q.blur(); };
+$("#chips").onclick = (e) => { const b = e.target.closest("[data-q]"); if (b) { q.value = b.dataset.q; run(b.dataset.q, true); } };
+$("#seg").onclick = async (e) => {
+  const b = e.target.closest("[data-en]");
+  if (!b || b.dataset.en === enCode) return;
+  await setVersion(b.dataset.en);
+  if (BIBLE) run(q.value, false);
+};
+$("#listBtn").onclick =() => { q.value = ""; showHome(); };
+$("#home").onclick = () => { q.value = ""; showHome(); };
+$("#planBtn").onclick = () => { if (BIBLE) { q.value = ""; showPlan(); } };
+// 앱을 켜 둔 채 날짜가 바뀌어도 다시 열 때 아이콘 상태를 갱신
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshPlanBtn(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "/" && document.activeElement !== q) { e.preventDefault(); q.focus(); q.select(); }
+  if (e.key === "Escape") clearSel();
+  if (current && document.activeElement !== q && !e.metaKey && !e.ctrlKey) {
+    if (e.key === "ArrowLeft") step(-1);
+    if (e.key === "ArrowRight") step(1);
+  }
+});
+
+renderChips();
+refreshPlanBtn();
+let savedEn = "";
+try { savedEn = localStorage.getItem("en") || ""; } catch {}
+fetch("bible.json").then((r) => { if (!r.ok) throw r.status; return r.json(); }).then(async (data) => {
+  if (EN_NAMES[savedEn]) await setVersion(savedEn);
+  BIBLE = data;
+  FLAT = [];
+  data.forEach((b, bi) => b.forEach((c, ci) => c.forEach((t, vi) => FLAT.push([bi, ci + 1, vi + 1, t]))));
+  q.value = q.value || "요 3:16";
+  run(q.value, false);
+}).catch(() => {
+  main.innerHTML = `<p class="status err">성경 본문을 불러오지 못했어요. 페이지를 새로고침해 주세요.</p>`;
+});
+// ---------- 설치형 앱 (PWA) ----------
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; $("#installBtn").hidden = false; });
+window.addEventListener("appinstalled", () => { $("#installBtn").hidden = true; toast("설치했어요. 바탕화면이나 홈 화면에서 열 수 있어요."); });
+$("#installBtn").onclick = async () => {
+  if (!installEvt) return;
+  installEvt.prompt();
+  await installEvt.userChoice;
+  installEvt = null; $("#installBtn").hidden = true;
+};
+</script>
+</body>
+</html>
